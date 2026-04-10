@@ -1,4 +1,4 @@
-import { LayoutDashboard, Calendar, PawPrint, DollarSign } from "lucide-react";
+import { LayoutDashboard, Calendar, PawPrint, DollarSign, ListChecks, Scissors, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -10,13 +10,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Agendamentos", url: "/agendamentos", icon: Calendar },
+  { title: "Fila do Dia", url: "/fila", icon: ListChecks },
   { title: "Pets & Tutores", url: "/pets-tutores", icon: PawPrint },
+  { title: "Serviços", url: "/servicos", icon: Scissors },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
 ];
 
@@ -63,6 +66,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={location.pathname === '/configuracoes'}>
+              <NavLink
+                to="/configuracoes"
+                end
+                className="hover:bg-sidebar-accent/50"
+                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+              >
+                <Settings className="h-4 w-4" />
+                {!collapsed && <span>Configurações</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
