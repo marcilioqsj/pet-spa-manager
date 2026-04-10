@@ -1,42 +1,101 @@
 
-# Plataforma de Gestão de Banho e Tosa 🐾
 
-## Visão Geral
-Sistema interno para petshops gerenciarem agendamentos, pets, tutores e finanças. Design moderno com paleta de cores suave (tons de azul/roxo com acentos vibrantes), layout limpo e responsivo.
+# Plano de Expansão - PetCare Banho & Tosa
 
-## Estrutura & Navegação
-- **Sidebar** colapsável com ícones e menu: Dashboard, Agendamentos, Pets & Tutores, Financeiro
-- Responsivo: sidebar vira menu hambúrguer no mobile
+## Resumo
 
-## Páginas
+6 novas funcionalidades adicionadas ao sistema existente, sem alterar o que já está feito. Tudo mockado, apenas front-end.
 
-### 1. Dashboard
-- Cards de resumo: agendamentos do dia, pets atendidos, faturamento diário/mensal
-- Lista dos próximos agendamentos do dia com status (aguardando, em atendimento, finalizado)
-- Gráfico simples de atendimentos da semana
+---
 
-### 2. Agendamentos
-- Calendário visual com visualização por dia/semana
-- Modal para criar/editar agendamento: pet, serviço (banho, tosa, banho+tosa), data/hora, observações
-- Status do agendamento com cores (agendado, em andamento, concluído, cancelado)
-- Filtros por data e status
+## 1. Fila de Atendimento (nova página `/fila`)
 
-### 3. Pets & Tutores
-- Lista de tutores com busca
-- Ficha do tutor: nome, telefone, endereço
-- Pets vinculados: nome, raça, porte, idade, observações (alergias, temperamento)
-- Modal para cadastro/edição de tutor e pet
+**Decisão: página separada** - A fila merece seu próprio espaço porque é uma visão operacional em tempo real, diferente do agendamento que é planejamento. A fila mostra apenas os pets do dia, com foco no fluxo.
 
-### 4. Financeiro
-- Registro de serviços realizados com valores
-- Resumo mensal: total faturado, quantidade de atendimentos
-- Tabela de serviços com filtro por período
-- Cards com métricas: ticket médio, comparativo mês anterior
+- Kanban horizontal com colunas: **Aguardando** → **Banho** → **Tosa** → **Secagem** → **Finalizado**
+- Cada card mostra: nome do pet, tutor, serviço, hora de entrada, tempo na etapa atual
+- Arrastar cards entre colunas (ou botão "Avançar") para mudar status
+- Indicador visual de tempo (fica amarelo/vermelho se demorar demais)
+- Link no sidebar com ícone de lista/fila
+
+**Novo item no sidebar:** "Fila do Dia" entre Agendamentos e Pets & Tutores.
+
+---
+
+## 2. Fechamento e Pagamento (dentro da Fila)
+
+Quando o pet chega na coluna "Finalizado":
+- Abre um **modal de fechamento** com:
+  - Resumo do serviço base + extras adicionados
+  - Valor total calculado automaticamente
+  - Seleção da forma de pagamento (das formas cadastradas - item 6)
+  - Campo para desconto opcional
+  - Botão "Registrar Pagamento"
+- Após registrar, o agendamento muda para status `concluido` e o valor vai pro Financeiro
+- Badge "Pago" aparece no card
+
+---
+
+## 3. Cadastro de Serviços (nova página `/servicos`)
+
+- **Serviços base**: lista editável (Banho, Tosa, Banho+Tosa, Hidratação, etc.) com preço por porte (Pequeno/Médio/Grande)
+- **Extras/Adicionais**: lista separada de itens avulsos - Perfume, Lacinho, Shampoo Premium, Escovação de dentes, etc. - cada um com preço fixo
+- Modal para criar/editar serviço ou extra
+- Na criação de agendamento e no fechamento, os extras ficam como checkboxes que somam ao valor
+
+**Novo item no sidebar:** "Serviços" com ícone de Scissors/Wrench.
+
+---
+
+## 4. Tags de Observações nos Pets
+
+Inspirado no Notion:
+- Campo de tags no cadastro/ficha do pet com **input autocomplete**
+- Ao digitar, mostra tags existentes para selecionar; se não existir, opção "Criar nova tag"
+- Tags com cores (palette pré-definida de ~8 cores, selecionável ao criar)
+- Exemplos mockados: "Agressivo", "Alérgico", "Primeiro banho", "Idoso", "Ansioso", "Não gosta de secador"
+- Tags ficam visíveis nos cards da fila e nos agendamentos
+- Dados das tags armazenados em `mockData.ts` como array global reutilizável
+
+**Alteração em:** `mockData.ts` (nova interface `Tag`, array de tags, campo `tags: string[]` no Pet) e `PetsTutores.tsx` (UI de tags).
+
+---
+
+## 5. Controle de Transporte (dentro do Agendamento)
+
+- Checkbox "Necessita transporte" no formulário de agendamento
+- Se marcado, campos extras aparecem: **endereço de coleta**, **horário de coleta**, **horário de retorno**
+- No card do agendamento, ícone de van/truck quando tem transporte
+- Na fila do dia, indicador visual de "buscar" e "devolver"
+- Seção colapsável na fila: "Transportes do dia" mostrando lista de coletas/devoluções com horários
+
+**Alteração em:** `mockData.ts` (campos de transporte no Agendamento) e `Agendamentos.tsx` (campos no form).
+
+---
+
+## 6. Formas de Pagamento (nova página `/configuracoes`)
+
+- Página de Configurações com seção "Formas de Pagamento"
+- Lista editável: Dinheiro, PIX, Cartão Crédito, Cartão Débito, etc.
+- Toggle para ativar/desativar cada forma
+- Essas opções alimentam o select no modal de fechamento (item 2)
+
+**Novo item no sidebar:** "Configurações" com ícone de Settings, posicionado no footer do sidebar.
+
+---
+
+## Arquivos Novos
+- `src/pages/FilaAtendimento.tsx` - Kanban da fila do dia
+- `src/pages/Servicos.tsx` - Cadastro de serviços e extras
+- `src/pages/Configuracoes.tsx` - Formas de pagamento e configs
+
+## Arquivos Modificados
+- `src/data/mockData.ts` - Novas interfaces (Tag, Servico, Extra, FormaPagamento, Transporte) e dados mock
+- `src/App.tsx` - Novas rotas
+- `src/components/AppSidebar.tsx` - Novos itens de menu
+- `src/pages/PetsTutores.tsx` - Sistema de tags nos pets
+- `src/pages/Agendamentos.tsx` - Campos de transporte e extras no form
 
 ## Design
-- Paleta moderna com tons de roxo/lilás como cor primária e gradientes sutis
-- Cards com sombra suave e bordas arredondadas
-- Ícones Lucide consistentes
-- Tipografia limpa e espaçamento generoso
-- Dados mockados realistas (nomes de pets, raças, valores)
-- Totalmente responsivo (mobile-first)
+Mantém o mesmo padrão visual existente (paleta roxa, cards com sombra, badges coloridas). O kanban da fila usa as mesmas cores de status já definidas.
+
