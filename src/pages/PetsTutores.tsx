@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Search, Phone, MapPin, PawPrint, Edit2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Search, Phone, MapPin, PawPrint, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tutores as initialTutores, type Tutor, type Pet } from "@/data/mockData";
+import { tutores as initialTutores, tags as globalTags, tagCores, type Tutor, type Pet, type Tag } from "@/data/mockData";
 import { toast } from "sonner";
 
 const porteBadge = {
@@ -17,13 +16,126 @@ const porteBadge = {
   Grande: 'bg-primary/10 text-primary border-primary/20',
 };
 
+function TagInput({ selectedTags, onTagsChange, allTags, onCreateTag }: {
+  selectedTags: string[];
+  onTagsChange: (tags: string[]) => void;
+  allTags: Tag[];
+  onCreateTag: (tag: Tag) => void;
+}) {
+  const [input, setInput] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = allTags.filter(t =>
+    t.nome.toLowerCase().includes(input.toLowerCase()) && !selectedTags.includes(t.id)
+  );
+
+  const handleSelect = (tagId: string) => {
+    onTagsChange([...selectedTags, tagId]);
+    setInput('');
+    setShowDropdown(false);
+  };
+
+  const handleRemove = (tagId: string) => {
+    onTagsChange(selectedTags.filter(id => id !== tagId));
+  };
+
+  const handleCreateNew = (cor: string) => {
+    const newTag: Tag = { id: `tag${Date.now()}`, nome: input.trim(), cor };
+    onCreateTag(newTag);
+    onTagsChange([...selectedTags, newTag.id]);
+    setInput('');
+    setShowColorPicker(false);
+    setShowDropdown(false);
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium">Tags</Label>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {selectedTags.map(tId => {
+          const tag = allTags.find(t => t.id === tId);
+          if (!tag) return null;
+          return (
+            <span
+              key={tag.id}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white cursor-pointer hover:opacity-80"
+              style={{ backgroundColor: tag.cor }}
+              onClick={() => handleRemove(tag.id)}
+            >
+              {tag.nome}
+              <X className="h-3 w-3" />
+            </span>
+          );
+        })}
+      </div>
+      <div className="relative">
+        <Input
+          ref={inputRef}
+          value={input}
+          onChange={e => { setInput(e.target.value); setShowDropdown(true); setShowColorPicker(false); }}
+          onFocus={() => setShowDropdown(true)}
+          placeholder="Buscar ou criar tag..."
+          className="text-sm"
+        />
+        {showDropdown && (input || filtered.length > 0) && (
+          <div className="absolute z-50 top-full mt-1 w-full bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            {filtered.map(tag => (
+              <button
+                key={tag.id}
+                type="button"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-left"
+                onClick={() => handleSelect(tag.id)}
+              >
+                <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: tag.cor }} />
+                {tag.nome}
+              </button>
+            ))}
+            {input.trim() && !allTags.some(t => t.nome.toLowerCase() === input.trim().toLowerCase()) && (
+              <>
+                {!showColorPicker ? (
+                  <button
+                    type="button"
+                    className="w-full px-3 py-2 text-sm text-primary font-medium hover:bg-muted/50 transition-colors text-left"
+                    onClick={() => setShowColorPicker(true)}
+                  >
+                    + Criar "{input.trim()}"
+                  </button>
+                ) : (
+                  <div className="px-3 py-2 space-y-1.5">
+                    <p className="text-xs text-muted-foreground">Escolha a cor:</p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {tagCores.map(cor => (
+                        <button
+                          key={cor}
+                          type="button"
+                          className="h-6 w-6 rounded-full border-2 border-transparent hover:border-foreground/30 transition-colors"
+                          style={{ backgroundColor: cor }}
+                          onClick={() => handleCreateNew(cor)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PetsTutores() {
   const [tutores, setTutores] = useState<Tutor[]>(initialTutores);
+  const [allTags, setAllTags] = useState<Tag[]>(globalTags);
   const [busca, setBusca] = useState('');
   const [tutorDialogOpen, setTutorDialogOpen] = useState(false);
   const [petDialogOpen, setPetDialogOpen] = useState(false);
   const [selectedTutorId, setSelectedTutorId] = useState<string | null>(null);
   const [expandedTutor, setExpandedTutor] = useState<string | null>(null);
+  const [newPetTags, setNewPetTags] = useState<string[]>([]);
 
   const filtered = tutores.filter(t =>
     t.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -57,10 +169,16 @@ export default function PetsTutores() {
       idade: form.get('idade') as string,
       observacoes: form.get('observacoes') as string,
       tutorId: selectedTutorId,
+      tags: newPetTags,
     };
     setTutores(prev => prev.map(t => t.id === selectedTutorId ? { ...t, pets: [...t.pets, novo] } : t));
     setPetDialogOpen(false);
+    setNewPetTags([]);
     toast.success('Pet cadastrado com sucesso!');
+  };
+
+  const handleAddTag = (tag: Tag) => {
+    setAllTags(prev => [...prev, tag]);
   };
 
   return (
@@ -99,14 +217,12 @@ export default function PetsTutores() {
         </Dialog>
       </div>
 
-      {/* Busca */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar tutor ou pet..." value={busca} onChange={e => setBusca(e.target.value)} className="pl-9" />
       </div>
 
-      {/* Pet dialog */}
-      <Dialog open={petDialogOpen} onOpenChange={setPetDialogOpen}>
+      <Dialog open={petDialogOpen} onOpenChange={(open) => { setPetDialogOpen(open); if (!open) setNewPetTags([]); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Novo Pet</DialogTitle>
@@ -134,6 +250,12 @@ export default function PetsTutores() {
                 <Input name="idade" required placeholder="Ex: 3 anos" />
               </div>
             </div>
+            <TagInput
+              selectedTags={newPetTags}
+              onTagsChange={setNewPetTags}
+              allTags={allTags}
+              onCreateTag={handleAddTag}
+            />
             <div className="space-y-2">
               <Label>Observações</Label>
               <Textarea name="observacoes" placeholder="Alergias, temperamento, etc." />
@@ -143,7 +265,6 @@ export default function PetsTutores() {
         </DialogContent>
       </Dialog>
 
-      {/* Lista de tutores */}
       <div className="grid gap-4">
         {filtered.map(tutor => (
           <Card key={tutor.id} className="border-none shadow-sm hover:shadow-md transition-shadow overflow-hidden">
@@ -187,22 +308,38 @@ export default function PetsTutores() {
                     <p className="text-sm text-muted-foreground">Nenhum pet cadastrado</p>
                   ) : (
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {tutor.pets.map(pet => (
-                        <div key={pet.id} className="rounded-xl bg-card p-3 border shadow-sm">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="font-semibold text-sm">{pet.nome}</p>
-                              <p className="text-xs text-muted-foreground">{pet.raca} · {pet.idade}</p>
+                      {tutor.pets.map(pet => {
+                        const petTagObjs = pet.tags.map(tId => allTags.find(t => t.id === tId)).filter(Boolean);
+                        return (
+                          <div key={pet.id} className="rounded-xl bg-card p-3 border shadow-sm">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="font-semibold text-sm">{pet.nome}</p>
+                                <p className="text-xs text-muted-foreground">{pet.raca} · {pet.idade}</p>
+                              </div>
+                              <Badge variant="outline" className={`text-xs ${porteBadge[pet.porte]}`}>
+                                {pet.porte}
+                              </Badge>
                             </div>
-                            <Badge variant="outline" className={`text-xs ${porteBadge[pet.porte]}`}>
-                              {pet.porte}
-                            </Badge>
+                            {petTagObjs.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {petTagObjs.map(tag => tag && (
+                                  <span
+                                    key={tag.id}
+                                    className="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                                    style={{ backgroundColor: tag.cor }}
+                                  >
+                                    {tag.nome}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {pet.observacoes && (
+                              <p className="text-xs text-muted-foreground/70 mt-2">{pet.observacoes}</p>
+                            )}
                           </div>
-                          {pet.observacoes && (
-                            <p className="text-xs text-muted-foreground/70 mt-2">{pet.observacoes}</p>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
