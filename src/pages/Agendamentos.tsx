@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Plus, Clock, CheckCircle2, Loader2, XCircle, Search, Filter } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Clock, CheckCircle2, Loader2, XCircle, Search, Filter, Truck } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { agendamentos as initialData, tutores, type Agendamento, type AgendamentoStatus, type ServicoTipo } from "@/data/mockData";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ export default function Agendamentos() {
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
   const [busca, setBusca] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [needsTransport, setNeedsTransport] = useState(false);
 
   const allPets = tutores.flatMap(t => t.pets.map(p => ({ ...p, tutorNome: t.nome })));
 
@@ -52,9 +54,16 @@ export default function Agendamentos() {
       status: 'agendado',
       observacoes: form.get('observacoes') as string,
       valor: Number(form.get('valor')),
+      transporte: needsTransport ? {
+        necessita: true,
+        enderecoColeta: form.get('enderecoColeta') as string,
+        horarioColeta: form.get('horarioColeta') as string,
+        horarioRetorno: form.get('horarioRetorno') as string,
+      } : undefined,
     };
     setAgendamentos(prev => [novo, ...prev]);
     setDialogOpen(false);
+    setNeedsTransport(false);
     toast.success('Agendamento criado com sucesso!');
   };
 
@@ -63,7 +72,6 @@ export default function Agendamentos() {
     toast.success(`Status atualizado para ${statusConfig[status].label}`);
   };
 
-  // Agrupa por data
   const groupedByDate = filtered.reduce<Record<string, Agendamento[]>>((acc, a) => {
     (acc[a.data] = acc[a.data] || []).push(a);
     return acc;
@@ -86,13 +94,13 @@ export default function Agendamentos() {
           <h1 className="text-2xl font-bold tracking-tight">Agendamentos</h1>
           <p className="text-muted-foreground text-sm mt-1">Gerencie os agendamentos do petshop</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setNeedsTransport(false); }}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" /> Novo Agendamento
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Novo Agendamento</DialogTitle>
             </DialogHeader>
@@ -128,6 +136,37 @@ export default function Agendamentos() {
                 <Label>Valor (R$)</Label>
                 <Input type="number" name="valor" required min={0} step={0.01} placeholder="0,00" />
               </div>
+
+              {/* Transporte */}
+              <div className="space-y-3 rounded-lg border p-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={needsTransport}
+                    onCheckedChange={(checked) => setNeedsTransport(!!checked)}
+                  />
+                  <Truck className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Necessita transporte</span>
+                </label>
+                {needsTransport && (
+                  <div className="space-y-3 pt-1">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Endereço de coleta</Label>
+                      <Input name="enderecoColeta" required placeholder="Endereço para coleta" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Horário coleta</Label>
+                        <Input type="time" name="horarioColeta" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Horário retorno</Label>
+                        <Input type="time" name="horarioRetorno" required />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label>Observações</Label>
                 <Textarea name="observacoes" placeholder="Observações sobre o atendimento..." />
@@ -181,7 +220,12 @@ export default function Agendamentos() {
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <span className="text-lg font-bold text-primary shrink-0 w-14">{a.hora}</span>
                           <div className="min-w-0">
-                            <p className="font-semibold truncate">{a.petNome}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold truncate">{a.petNome}</p>
+                              {a.transporte?.necessita && (
+                                <Truck className="h-3.5 w-3.5 text-primary shrink-0" />
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">{a.tutorNome} · {a.servico}</p>
                             {a.observacoes && <p className="text-xs text-muted-foreground/70 mt-1 truncate">{a.observacoes}</p>}
                           </div>
