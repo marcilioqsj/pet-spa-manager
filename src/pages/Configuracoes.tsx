@@ -25,6 +25,7 @@ export default function Configuracoes() {
       id: `fp${Date.now()}`,
       nome: form.get('nome') as string,
       ativo: true,
+      acrescimo: Number(form.get('acrescimo')) || 0,
     };
     setFormas(prev => [...prev, nova]);
     setDialogOpen(false);
@@ -34,6 +35,10 @@ export default function Configuracoes() {
   const remover = (id: string) => {
     setFormas(prev => prev.filter(f => f.id !== id));
     toast.success('Forma de pagamento removida');
+  };
+
+  const updateAcrescimo = (id: string, value: string) => {
+    setFormas(prev => prev.map(f => f.id === id ? { ...f, acrescimo: Number(value) || 0 } : f));
   };
 
   return (
@@ -61,8 +66,23 @@ export default function Configuracoes() {
               key={fp.id}
               className={`flex items-center justify-between rounded-lg border p-3 transition-opacity ${!fp.ativo ? 'opacity-50' : ''}`}
             >
-              <span className="font-medium text-sm">{fp.nome}</span>
               <div className="flex items-center gap-3">
+                <span className="font-medium text-sm">{fp.nome}</span>
+                {fp.acrescimo > 0 && (
+                  <span className="text-xs text-warning font-medium">+{fp.acrescimo}%</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  className="w-20 h-8 text-xs"
+                  value={fp.acrescimo}
+                  onChange={e => updateAcrescimo(fp.id, e.target.value)}
+                  placeholder="0%"
+                />
+                <span className="text-xs text-muted-foreground">%</span>
                 <Switch checked={fp.ativo} onCheckedChange={() => toggleForma(fp.id)} />
                 <Button
                   size="icon"
@@ -87,6 +107,10 @@ export default function Configuracoes() {
             <div className="space-y-2">
               <Label>Nome</Label>
               <Input name="nome" required placeholder="Ex: Vale Alimentação" />
+            </div>
+            <div className="space-y-2">
+              <Label>Acréscimo (%)</Label>
+              <Input name="acrescimo" type="number" min={0} step={0.5} placeholder="0" />
             </div>
             <Button type="submit" className="w-full">Adicionar</Button>
           </form>
