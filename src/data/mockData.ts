@@ -160,6 +160,10 @@ export const extras: Extra[] = [
   { id: 'e7', nome: 'Limpeza de ouvido', preco: 15, ativo: true },
 ];
 
+const hoje = new Date();
+const formatDate = (d: Date) => d.toISOString().split('T')[0];
+const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
 export const formasPagamento: FormaPagamento[] = [
   { id: 'fp1', nome: 'Dinheiro', ativo: true, acrescimo: 0 },
   { id: 'fp2', nome: 'PIX', ativo: true, acrescimo: 0 },
@@ -252,9 +256,8 @@ export const tutores: Tutor[] = [
   },
 ];
 
-const hoje = new Date();
-const formatDate = (d: Date) => d.toISOString().split('T')[0];
-const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
+
 
 export const agendamentos: Agendamento[] = [
   { id: 'a1', petId: 'p1', petNome: 'Thor', tutorNome: 'Maria Silva', servico: 'Banho + Tosa', data: formatDate(hoje), hora: '09:00', status: 'concluido', observacoes: 'Usar shampoo hipoalergênico', valor: 120, extras: ['e1', 'e3'] },
