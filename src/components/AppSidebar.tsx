@@ -1,6 +1,7 @@
-import { LayoutDashboard, Calendar, PawPrint, DollarSign, ListChecks, Scissors, Settings } from "lucide-react";
+import { LayoutDashboard, Calendar, PawPrint, DollarSign, ListChecks, Scissors, Settings, Users, TrendingUp, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -13,20 +14,33 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
-const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Agendamentos", url: "/agendamentos", icon: Calendar },
-  { title: "Fila do Dia", url: "/fila", icon: ListChecks },
-  { title: "Pets & Tutores", url: "/pets-tutores", icon: PawPrint },
-  { title: "Serviços", url: "/servicos", icon: Scissors },
-  { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+const allItems = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, modulo: "dashboard" },
+  { title: "Agendamentos", url: "/agendamentos", icon: Calendar, modulo: "agendamentos" },
+  { title: "Fila do Dia", url: "/fila", icon: ListChecks, modulo: "fila" },
+  { title: "Pets & Tutores", url: "/pets-tutores", icon: PawPrint, modulo: "pets-tutores" },
+  { title: "Serviços", url: "/servicos", icon: Scissors, modulo: "servicos" },
+  { title: "Financeiro", url: "/financeiro", icon: DollarSign, modulo: "financeiro" },
+  { title: "Comissões", url: "/comissoes", icon: TrendingUp, modulo: "comissoes" },
+  { title: "Equipe", url: "/equipe", icon: Users, modulo: "equipe" },
+];
+
+const funcItems = [
+  { title: "Minhas Comissões", url: "/minhas-comissoes", icon: TrendingUp, modulo: "minhas-comissoes" },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { usuario, logout, temPermissao } = useAuth();
+
+  const menuItems = [
+    ...allItems.filter(item => temPermissao(item.modulo)),
+    ...funcItems.filter(item => temPermissao(item.modulo)),
+  ];
 
   return (
     <Sidebar collapsible="icon">
@@ -47,7 +61,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={location.pathname === item.url}>
                     <NavLink
@@ -66,19 +80,34 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-2">
+      <SidebarFooter className="p-2 space-y-1">
         <SidebarMenu>
+          {temPermissao('configuracoes') && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/configuracoes'}>
+                <NavLink
+                  to="/configuracoes"
+                  end
+                  className="hover:bg-sidebar-accent/50"
+                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                >
+                  <Settings className="h-4 w-4" />
+                  {!collapsed && <span>Configurações</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={location.pathname === '/configuracoes'}>
-              <NavLink
-                to="/configuracoes"
-                end
-                className="hover:bg-sidebar-accent/50"
-                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-              >
-                <Settings className="h-4 w-4" />
-                {!collapsed && <span>Configurações</span>}
-              </NavLink>
+            <SidebarMenuButton asChild>
+              <button onClick={logout} className="w-full flex items-center gap-2 hover:bg-sidebar-accent/50 text-sidebar-foreground/70">
+                <LogOut className="h-4 w-4" />
+                {!collapsed && (
+                  <div className="flex flex-col items-start">
+                    <span className="text-xs">{usuario?.nome}</span>
+                    <span className="text-[10px] text-sidebar-foreground/50 capitalize">{usuario?.cargo}</span>
+                  </div>
+                )}
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

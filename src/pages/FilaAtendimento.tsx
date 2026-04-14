@@ -11,6 +11,7 @@ import {
   agendamentos,
   extras as extrasData,
   formasPagamento,
+  funcionarios,
   tags as tagsData,
   tutores,
   type FilaEtapa,
@@ -67,6 +68,7 @@ export default function FilaAtendimento() {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [formaPag, setFormaPag] = useState('');
   const [desconto, setDesconto] = useState('');
+  const [funcionarioId, setFuncionarioId] = useState('');
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -107,19 +109,25 @@ export default function FilaAtendimento() {
     setCheckoutItem(null);
     setFormaPag('');
     setDesconto('');
+    setFuncionarioId('');
     toast.success('Pagamento registrado com sucesso!');
   };
 
   const calcularTotal = () => {
-    if (!checkoutItem) return 0;
+    if (!checkoutItem) return { base: 0, extrasTotal: 0, acrescimo: 0, descontoVal: 0, total: 0 };
     const ag = agendamentos.find(a => a.id === checkoutItem.agendamentoId);
     const base = ag?.valor || 0;
     const extrasTotal = selectedExtras.reduce((sum, eId) => {
       const ex = extrasData.find(e => e.id === eId);
       return sum + (ex?.preco || 0);
     }, 0);
-    const desc = Number(desconto) || 0;
-    return Math.max(0, base + extrasTotal - desc);
+    const subtotal = base + extrasTotal;
+    const fp = formasPagamento.find(f => f.id === formaPag);
+    const acrescimoPercent = fp?.acrescimo || 0;
+    const acrescimo = subtotal * acrescimoPercent / 100;
+    const descontoVal = Number(desconto) || 0;
+    const total = Math.max(0, subtotal + acrescimo - descontoVal);
+    return { base, extrasTotal, acrescimo, descontoVal, total };
   };
 
   const transportes = fila.filter(f => f.transporte?.necessita);
@@ -275,6 +283,20 @@ export default function FilaAtendimento() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-sm font-semibold">Funcionário Responsável</Label>
+                <select
+                  value={funcionarioId}
+                  onChange={e => setFuncionarioId(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Selecione...</option>
+                  {funcionarios.filter(f => f.papel === 'funcionario' && f.ativo).map(f => (
+                    <option key={f.id} value={f.id}>{f.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-sm font-semibold">Forma de Pagamento</Label>
                 <select
                   value={formaPag}
@@ -283,7 +305,9 @@ export default function FilaAtendimento() {
                 >
                   <option value="">Selecione...</option>
                   {formasPagamento.filter(f => f.ativo).map(fp => (
-                    <option key={fp.id} value={fp.id}>{fp.nome}</option>
+                    <option key={fp.id} value={fp.id}>
+                      {fp.nome}{fp.acrescimo > 0 ? ` (+${fp.acrescimo}%)` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -300,25 +324,34 @@ export default function FilaAtendimento() {
                 />
               </div>
 
-              <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">Total</span>
-                  <span className="text-2xl font-bold text-primary">R$ {calcularTotal().toFixed(2)}</span>
-                </div>
-                {selectedExtras.length > 0 && (
-                  <div className="mt-2 space-y-0.5">
-                    {selectedExtras.map(eId => {
-                      const ex = extrasData.find(e => e.id === eId);
-                      return ex && (
-                        <p key={eId} className="text-xs text-muted-foreground">+ {ex.nome}: R$ {ex.preco}</p>
-                      );
-                    })}
+              {(() => {
+                const calc = calcularTotal();
+                const fp = formasPagamento.find(f => f.id === formaPag);
+                return (
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">Total</span>
+                      <span className="text-2xl font-bold text-primary">R$ {calc.total.toFixed(2)}</span>
+                    </div>
+                    {selectedExtras.length > 0 && (
+                      <div className="mt-2 space-y-0.5">
+                        {selectedExtras.map(eId => {
+                          const ex = extrasData.find(e => e.id === eId);
+                          return ex && (
+                            <p key={eId} className="text-xs text-muted-foreground">+ {ex.nome}: R$ {ex.preco}</p>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {calc.acrescimo > 0 && fp && (
+                      <p className="text-xs text-warning mt-1">+ Acréscimo {fp.nome} ({fp.acrescimo}%): R$ {calc.acrescimo.toFixed(2)}</p>
+                    )}
+                    {calc.descontoVal > 0 && (
+                      <p className="text-xs text-destructive mt-1">- Desconto: R$ {calc.descontoVal.toFixed(2)}</p>
+                    )}
                   </div>
-                )}
-                {Number(desconto) > 0 && (
-                  <p className="text-xs text-destructive mt-1">- Desconto: R$ {Number(desconto).toFixed(2)}</p>
-                )}
-              </div>
+                );
+              })()}
 
               <Button className="w-full gap-2" onClick={registrarPagamento}>
                 <CheckCircle2 className="h-4 w-4" /> Registrar Pagamento

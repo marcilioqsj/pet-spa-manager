@@ -59,6 +59,49 @@ export interface FormaPagamento {
   id: string;
   nome: string;
   ativo: boolean;
+  acrescimo: number; // percentual, ex: 5 = 5%
+}
+
+export type CargoFuncionario = 'admin' | 'banhista' | 'tosador' | 'auxiliar';
+
+export interface ComissaoConfig {
+  servicoId: string;
+  tipo: 'percentual' | 'fixo';
+  valor: number; // se percentual: 40 = 40%, se fixo: valor em reais
+}
+
+export interface Funcionario {
+  id: string;
+  nome: string;
+  cargo: CargoFuncionario;
+  papel: 'admin' | 'funcionario';
+  comissoes: ComissaoConfig[];
+  ativo: boolean;
+  permissoes: string[]; // module names allowed
+}
+
+export type MovimentacaoTipo = 'vale' | 'produto';
+
+export interface MovimentacaoFuncionario {
+  id: string;
+  funcionarioId: string;
+  tipo: MovimentacaoTipo;
+  valor: number;
+  descricao: string;
+  data: string;
+}
+
+export interface Comissao {
+  id: string;
+  funcionarioId: string;
+  agendamentoId: string;
+  servicoNome: string;
+  petNome: string;
+  valorServico: number;
+  valorComissao: number;
+  data: string;
+  pago: boolean;
+  dataPagamento?: string;
 }
 
 export interface Transporte {
@@ -117,12 +160,64 @@ export const extras: Extra[] = [
   { id: 'e7', nome: 'Limpeza de ouvido', preco: 15, ativo: true },
 ];
 
+const hoje = new Date();
+const formatDate = (d: Date) => d.toISOString().split('T')[0];
+const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
 export const formasPagamento: FormaPagamento[] = [
-  { id: 'fp1', nome: 'Dinheiro', ativo: true },
-  { id: 'fp2', nome: 'PIX', ativo: true },
-  { id: 'fp3', nome: 'Cartão de Crédito', ativo: true },
-  { id: 'fp4', nome: 'Cartão de Débito', ativo: true },
-  { id: 'fp5', nome: 'Transferência Bancária', ativo: false },
+  { id: 'fp1', nome: 'Dinheiro', ativo: true, acrescimo: 0 },
+  { id: 'fp2', nome: 'PIX', ativo: true, acrescimo: 0 },
+  { id: 'fp3', nome: 'Cartão de Crédito', ativo: true, acrescimo: 5 },
+  { id: 'fp4', nome: 'Cartão de Débito', ativo: true, acrescimo: 3 },
+  { id: 'fp5', nome: 'Transferência Bancária', ativo: false, acrescimo: 0 },
+];
+
+export const todosModulos = [
+  'dashboard', 'agendamentos', 'fila', 'pets-tutores', 'servicos', 'financeiro', 'configuracoes', 'equipe', 'comissoes',
+];
+
+export const funcionarios: Funcionario[] = [
+  {
+    id: 'func1', nome: 'Carlos Pereira', cargo: 'admin', papel: 'admin',
+    comissoes: [], ativo: true,
+    permissoes: todosModulos,
+  },
+  {
+    id: 'func2', nome: 'Ana Souza', cargo: 'banhista', papel: 'funcionario',
+    comissoes: [
+      { servicoId: 's1', tipo: 'percentual', valor: 40 },
+      { servicoId: 's2', tipo: 'fixo', valor: 25 },
+      { servicoId: 's3', tipo: 'percentual', valor: 40 },
+    ],
+    ativo: true,
+    permissoes: ['fila', 'agendamentos', 'minhas-comissoes'],
+  },
+  {
+    id: 'func3', nome: 'Pedro Lima', cargo: 'tosador', papel: 'funcionario',
+    comissoes: [
+      { servicoId: 's1', tipo: 'fixo', valor: 20 },
+      { servicoId: 's2', tipo: 'percentual', valor: 35 },
+      { servicoId: 's3', tipo: 'percentual', valor: 35 },
+    ],
+    ativo: true,
+    permissoes: ['fila', 'agendamentos', 'minhas-comissoes'],
+  },
+];
+
+export const movimentacoesFuncionarios: MovimentacaoFuncionario[] = [
+  { id: 'mov1', funcionarioId: 'func2', tipo: 'vale', valor: 50, descricao: 'Vale em dinheiro', data: formatDate(addDays(hoje, -9)) },
+  { id: 'mov2', funcionarioId: 'func2', tipo: 'produto', valor: 25, descricao: 'Shampoo pet 500ml', data: formatDate(addDays(hoje, -6)) },
+  { id: 'mov3', funcionarioId: 'func3', tipo: 'vale', valor: 100, descricao: 'Vale em dinheiro', data: formatDate(addDays(hoje, -7)) },
+  { id: 'mov4', funcionarioId: 'func3', tipo: 'produto', valor: 18, descricao: 'Perfume colônia', data: formatDate(addDays(hoje, -3)) },
+];
+
+export const comissoes: Comissao[] = [
+  { id: 'com1', funcionarioId: 'func2', agendamentoId: 'a1', servicoNome: 'Banho + Tosa', petNome: 'Thor', valorServico: 120, valorComissao: 48, data: formatDate(hoje), pago: false },
+  { id: 'com2', funcionarioId: 'func2', agendamentoId: 'a9', servicoNome: 'Banho', petNome: 'Thor', valorServico: 80, valorComissao: 32, data: formatDate(addDays(hoje, -1)), pago: true, dataPagamento: formatDate(addDays(hoje, -1)) },
+  { id: 'com3', funcionarioId: 'func3', agendamentoId: 'a10', servicoNome: 'Banho + Tosa', petNome: 'Bob', valorServico: 120, valorComissao: 42, data: formatDate(addDays(hoje, -1)), pago: true, dataPagamento: formatDate(addDays(hoje, -1)) },
+  { id: 'com4', funcionarioId: 'func2', agendamentoId: 'a11', servicoNome: 'Tosa', petNome: 'Mel', valorServico: 80, valorComissao: 25, data: formatDate(addDays(hoje, -2)), pago: false },
+  { id: 'com5', funcionarioId: 'func3', agendamentoId: 'a12', servicoNome: 'Banho', petNome: 'Pipoca', valorServico: 55, valorComissao: 20, data: formatDate(addDays(hoje, -2)), pago: false },
+  { id: 'com6', funcionarioId: 'func3', agendamentoId: 'a13', servicoNome: 'Banho + Tosa', petNome: 'Rex', valorServico: 140, valorComissao: 49, data: formatDate(addDays(hoje, -3)), pago: false },
 ];
 
 export const tutores: Tutor[] = [
@@ -161,9 +256,8 @@ export const tutores: Tutor[] = [
   },
 ];
 
-const hoje = new Date();
-const formatDate = (d: Date) => d.toISOString().split('T')[0];
-const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
+
 
 export const agendamentos: Agendamento[] = [
   { id: 'a1', petId: 'p1', petNome: 'Thor', tutorNome: 'Maria Silva', servico: 'Banho + Tosa', data: formatDate(hoje), hora: '09:00', status: 'concluido', observacoes: 'Usar shampoo hipoalergênico', valor: 120, extras: ['e1', 'e3'] },
