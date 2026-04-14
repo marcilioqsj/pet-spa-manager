@@ -1,101 +1,91 @@
 
 
-# Plano de Expansão - PetCare Banho & Tosa
+# Plano de Expansão - Fase 2
 
-## Resumo
+## 1. Vales e Produtos de Funcionários
 
-6 novas funcionalidades adicionadas ao sistema existente, sem alterar o que já está feito. Tudo mockado, apenas front-end.
+**Onde:** Nova seção no Financeiro + controle no perfil do funcionário
 
----
-
-## 1. Fila de Atendimento (nova página `/fila`)
-
-**Decisão: página separada** - A fila merece seu próprio espaço porque é uma visão operacional em tempo real, diferente do agendamento que é planejamento. A fila mostra apenas os pets do dia, com foco no fluxo.
-
-- Kanban horizontal com colunas: **Aguardando** → **Banho** → **Tosa** → **Secagem** → **Finalizado**
-- Cada card mostra: nome do pet, tutor, serviço, hora de entrada, tempo na etapa atual
-- Arrastar cards entre colunas (ou botão "Avançar") para mudar status
-- Indicador visual de tempo (fica amarelo/vermelho se demorar demais)
-- Link no sidebar com ícone de lista/fila
-
-**Novo item no sidebar:** "Fila do Dia" entre Agendamentos e Pets & Tutores.
+- Novo tipo de registro: `MovimentacaoFuncionario` (vale em dinheiro, produto retirado da loja)
+- Botão "Registrar Vale/Produto" no Financeiro com modal: funcionário, tipo (vale/produto), valor, descrição, data
+- Aba "Movimentações de Equipe" no Financeiro com tabela filtrável por funcionário/período
+- No fechamento de comissão, os vales/produtos são descontados automaticamente do saldo
 
 ---
 
-## 2. Fechamento e Pagamento (dentro da Fila)
+## 2. Acréscimo por Forma de Pagamento
 
-Quando o pet chega na coluna "Finalizado":
-- Abre um **modal de fechamento** com:
-  - Resumo do serviço base + extras adicionados
-  - Valor total calculado automaticamente
-  - Seleção da forma de pagamento (das formas cadastradas - item 6)
-  - Campo para desconto opcional
-  - Botão "Registrar Pagamento"
-- Após registrar, o agendamento muda para status `concluido` e o valor vai pro Financeiro
-- Badge "Pago" aparece no card
+**Onde:** Configurações (formas de pagamento existentes)
+
+- Adicionar campo `acrescimo` (percentual) na interface `FormaPagamento` - ex: Cartão Crédito +5%
+- No modal de cadastro/edição de forma de pagamento, campo opcional "Acréscimo (%)"
+- No fechamento (modal da fila), ao selecionar forma de pagamento, valor total recalcula automaticamente mostrando: valor base + acréscimo
+- Visual claro: "R$ 100 + 5% cartão = R$ 105"
 
 ---
 
-## 3. Cadastro de Serviços (nova página `/servicos`)
+## 3. Login Mockado e Perfis de Acesso
 
-- **Serviços base**: lista editável (Banho, Tosa, Banho+Tosa, Hidratação, etc.) com preço por porte (Pequeno/Médio/Grande)
-- **Extras/Adicionais**: lista separada de itens avulsos - Perfume, Lacinho, Shampoo Premium, Escovação de dentes, etc. - cada um com preço fixo
-- Modal para criar/editar serviço ou extra
-- Na criação de agendamento e no fechamento, os extras ficam como checkboxes que somam ao valor
+**Onde:** Tela de login + novo módulo de Equipe
 
-**Novo item no sidebar:** "Serviços" com ícone de Scissors/Wrench.
+### Login simulado
+- Tela de login simples com select de usuário (sem senha) - perfis pré-cadastrados
+- Usuários mock: 1 admin ("Carlos - Dono"), 2 funcionários ("Ana - Banhista", "Pedro - Tosador")
+- Contexto global (`AuthContext`) com usuário logado e papel (admin/funcionario)
 
----
+### Página Equipe (`/equipe`) - apenas admin
+- Cadastro de funcionários: nome, cargo, comissão padrão (% ou valor fixo por serviço)
+- Tabela de permissões por perfil: quais módulos cada tipo acessa
+- Toggle de permissões: Dashboard, Agendamentos, Fila, Financeiro, Serviços, Configurações, Equipe
 
-## 4. Tags de Observações nos Pets
-
-Inspirado no Notion:
-- Campo de tags no cadastro/ficha do pet com **input autocomplete**
-- Ao digitar, mostra tags existentes para selecionar; se não existir, opção "Criar nova tag"
-- Tags com cores (palette pré-definida de ~8 cores, selecionável ao criar)
-- Exemplos mockados: "Agressivo", "Alérgico", "Primeiro banho", "Idoso", "Ansioso", "Não gosta de secador"
-- Tags ficam visíveis nos cards da fila e nos agendamentos
-- Dados das tags armazenados em `mockData.ts` como array global reutilizável
-
-**Alteração em:** `mockData.ts` (nova interface `Tag`, array de tags, campo `tags: string[]` no Pet) e `PetsTutores.tsx` (UI de tags).
+### Visão do funcionário
+- Sidebar mostra apenas módulos permitidos
+- Página "Minhas Comissões" acessível ao funcionário: lista de serviços realizados, valores de comissão, vales descontados, saldo
 
 ---
 
-## 5. Controle de Transporte (dentro do Agendamento)
+## 4. Controle de Comissões (Admin)
 
-- Checkbox "Necessita transporte" no formulário de agendamento
-- Se marcado, campos extras aparecem: **endereço de coleta**, **horário de coleta**, **horário de retorno**
-- No card do agendamento, ícone de van/truck quando tem transporte
-- Na fila do dia, indicador visual de "buscar" e "devolver"
-- Seção colapsável na fila: "Transportes do dia" mostrando lista de coletas/devoluções com horários
+**Onde:** Nova aba no Financeiro ou página separada `/comissoes`
 
-**Alteração em:** `mockData.ts` (campos de transporte no Agendamento) e `Agendamentos.tsx` (campos no form).
-
----
-
-## 6. Formas de Pagamento (nova página `/configuracoes`)
-
-- Página de Configurações com seção "Formas de Pagamento"
-- Lista editável: Dinheiro, PIX, Cartão Crédito, Cartão Débito, etc.
-- Toggle para ativar/desativar cada forma
-- Essas opções alimentam o select no modal de fechamento (item 2)
-
-**Novo item no sidebar:** "Configurações" com ícone de Settings, posicionado no footer do sidebar.
+- Tabela: funcionário, período, total de serviços, comissão bruta, vales/produtos descontados, comissão líquida, status (pendente/pago)
+- Filtro por funcionário e período
+- Botão "Marcar como Pago" que registra data do pagamento
+- Cards de resumo: total de comissões pendentes, total pago no mês
+- No fechamento do serviço (fila), campo para selecionar qual funcionário realizou o atendimento (vincula a comissão)
 
 ---
 
-## Arquivos Novos
-- `src/pages/FilaAtendimento.tsx` - Kanban da fila do dia
-- `src/pages/Servicos.tsx` - Cadastro de serviços e extras
-- `src/pages/Configuracoes.tsx` - Formas de pagamento e configs
+## Dados Mock Adicionados
 
-## Arquivos Modificados
-- `src/data/mockData.ts` - Novas interfaces (Tag, Servico, Extra, FormaPagamento, Transporte) e dados mock
-- `src/App.tsx` - Novas rotas
-- `src/components/AppSidebar.tsx` - Novos itens de menu
-- `src/pages/PetsTutores.tsx` - Sistema de tags nos pets
-- `src/pages/Agendamentos.tsx` - Campos de transporte e extras no form
+```text
+Funcionarios:
+  - Carlos (admin/dono)
+  - Ana (banhista) - comissão 40% banho, R$25 fixo tosa
+  - Pedro (tosador) - comissão 35% tosa, R$20 fixo banho
 
-## Design
-Mantém o mesmo padrão visual existente (paleta roxa, cards com sombra, badges coloridas). O kanban da fila usa as mesmas cores de status já definidas.
+Movimentações:
+  - Ana: vale R$50 (05/04), produto shampoo R$25 (08/04)
+  - Pedro: vale R$100 (07/04)
+
+Comissões:
+  - Registros vinculados aos agendamentos concluídos
+```
+
+## Arquivos
+
+### Novos
+- `src/contexts/AuthContext.tsx` - contexto de autenticação mockada
+- `src/pages/Login.tsx` - tela de login simulado
+- `src/pages/Equipe.tsx` - gestão de funcionários e permissões (admin)
+- `src/pages/Comissoes.tsx` - controle de comissões (admin)
+- `src/pages/MinhasComissoes.tsx` - visão do funcionário
+
+### Modificados
+- `src/data/mockData.ts` - interfaces Funcionario, MovimentacaoFuncionario, Comissao; campo acrescimo em FormaPagamento
+- `src/App.tsx` - AuthProvider, rota de login, rotas protegidas
+- `src/components/AppSidebar.tsx` - menu dinâmico por permissão, item Equipe
+- `src/pages/Configuracoes.tsx` - campo acréscimo na forma de pagamento
+- `src/pages/FilaAtendimento.tsx` - seleção de funcionário no fechamento, cálculo de acréscimo
+- `src/pages/Financeiro.tsx` - aba movimentações de equipe
 
