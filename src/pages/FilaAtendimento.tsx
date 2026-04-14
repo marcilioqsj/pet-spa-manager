@@ -11,6 +11,7 @@ import {
   agendamentos,
   extras as extrasData,
   formasPagamento,
+  funcionarios,
   tags as tagsData,
   tutores,
   type FilaEtapa,
@@ -67,6 +68,7 @@ export default function FilaAtendimento() {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [formaPag, setFormaPag] = useState('');
   const [desconto, setDesconto] = useState('');
+  const [funcionarioId, setFuncionarioId] = useState('');
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -107,19 +109,25 @@ export default function FilaAtendimento() {
     setCheckoutItem(null);
     setFormaPag('');
     setDesconto('');
+    setFuncionarioId('');
     toast.success('Pagamento registrado com sucesso!');
   };
 
   const calcularTotal = () => {
-    if (!checkoutItem) return 0;
+    if (!checkoutItem) return { base: 0, extrasTotal: 0, acrescimo: 0, descontoVal: 0, total: 0 };
     const ag = agendamentos.find(a => a.id === checkoutItem.agendamentoId);
     const base = ag?.valor || 0;
     const extrasTotal = selectedExtras.reduce((sum, eId) => {
       const ex = extrasData.find(e => e.id === eId);
       return sum + (ex?.preco || 0);
     }, 0);
-    const desc = Number(desconto) || 0;
-    return Math.max(0, base + extrasTotal - desc);
+    const subtotal = base + extrasTotal;
+    const fp = formasPagamento.find(f => f.id === formaPag);
+    const acrescimoPercent = fp?.acrescimo || 0;
+    const acrescimo = subtotal * acrescimoPercent / 100;
+    const descontoVal = Number(desconto) || 0;
+    const total = Math.max(0, subtotal + acrescimo - descontoVal);
+    return { base, extrasTotal, acrescimo, descontoVal, total };
   };
 
   const transportes = fila.filter(f => f.transporte?.necessita);
